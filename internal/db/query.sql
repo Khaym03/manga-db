@@ -1,11 +1,12 @@
--- name: InsertManga :execrows
+-- name: InsertManga :one
 INSERT INTO Manga (
     title, subtitle, synopsis, score, members, cover_image_path,
     publication_year, type, status, total_volumes, total_chapters
 ) VALUES (
     ?, ?, ?, ?, ?, ?,
     ?, ?, ?, ?, ?
-);
+)
+RETURNING manga_id;
 
 -- name: GetMangaIDByTitle :one
 SELECT manga_id FROM Manga WHERE title = ?;
@@ -60,9 +61,8 @@ RETURNING theme_id;
 -- name: InsertMangaTheme :exec
 INSERT OR IGNORE INTO MangaTheme (manga_id, theme_id) VALUES (?, ?);
 
--- Example Query: Get all Manga with their Genres, Authors, etc.
--- This is a more complex join, demonstrating how to retrieve related data.
--- name: GetMangaDetails :many
+
+-- name: GetAllMangaDetails :many
 SELECT
     m.manga_id,
     m.title,
@@ -76,26 +76,70 @@ SELECT
     m.status,
     m.total_volumes,
     m.total_chapters,
-    GROUP_CONCAT(DISTINCT g.genre_name) AS genres,
-    GROUP_CONCAT(DISTINCT a.author_name) AS authors,
-    GROUP_CONCAT(DISTINCT s.serialization_name) AS serializations,
-    GROUP_CONCAT(DISTINCT d.demographic_name) AS demographics,
-    GROUP_CONCAT(DISTINCT t.theme_name) AS themes
+    COALESCE(genres_agg.genre_names, '') AS genres,
+    COALESCE(authors_agg.author_names, '') AS authors,
+    COALESCE(serializations_agg.serialization_names, '') AS serializations,
+    COALESCE(demographics_agg.demographic_names, '') AS demographics,
+    COALESCE(themes_agg.theme_names, '') AS themes
 FROM
     Manga m
-LEFT JOIN MangaGenre mg ON m.manga_id = mg.manga_id
-LEFT JOIN Genre g ON mg.genre_id = g.genre_id
-LEFT JOIN MangaAuthor ma ON m.manga_id = ma.manga_id
-LEFT JOIN Author a ON ma.author_id = a.author_id
-LEFT JOIN MangaSerialization ms ON m.manga_id = ms.manga_id
-LEFT JOIN Serialization s ON ms.serialization_id = s.serialization_id
-LEFT JOIN MangaDemographic md ON m.manga_id = md.manga_id
-LEFT JOIN Demographic d ON md.demographic_id = d.demographic_id
-LEFT JOIN MangaTheme mt ON m.manga_id = mt.manga_id
-LEFT JOIN Theme t ON mt.theme_id = t.theme_id
-WHERE m.manga_id = ? OR ? IS NULL -- Allows fetching a specific manga or all if NULL is passed
-GROUP BY m.manga_id
+LEFT JOIN (
+    SELECT
+        mg.manga_id,
+        GROUP_CONCAT(DISTINCT g.genre_name) AS genre_names
+    FROM
+        MangaGenre mg
+    JOIN
+        Genre g ON mg.genre_id = g.genre_id
+    GROUP BY
+        mg.manga_id
+) AS genres_agg ON m.manga_id = genres_agg.manga_id
+LEFT JOIN (
+    SELECT
+        ma.manga_id,
+        GROUP_CONCAT(DISTINCT a.author_name) AS author_names
+    FROM
+        MangaAuthor ma
+    JOIN
+        Author a ON ma.author_id = a.author_id
+    GROUP BY
+        ma.manga_id
+) AS authors_agg ON m.manga_id = authors_agg.manga_id
+LEFT JOIN (
+    SELECT
+        ms.manga_id,
+        GROUP_CONCAT(DISTINCT s.serialization_name) AS serialization_names
+    FROM
+        MangaSerialization ms
+    JOIN
+        Serialization s ON ms.serialization_id = s.serialization_id
+    GROUP BY
+        ms.manga_id
+) AS serializations_agg ON m.manga_id = serializations_agg.manga_id
+LEFT JOIN (
+    SELECT
+        md.manga_id,
+        GROUP_CONCAT(DISTINCT d.demographic_name) AS demographic_names
+    FROM
+        MangaDemographic md
+    JOIN
+        Demographic d ON md.demographic_id = d.demographic_id
+    GROUP BY
+        md.manga_id
+) AS demographics_agg ON m.manga_id = demographics_agg.manga_id
+LEFT JOIN (
+    SELECT
+        mt.manga_id,
+        GROUP_CONCAT(DISTINCT t.theme_name) AS theme_names
+    FROM
+        MangaTheme mt
+    JOIN
+        Theme t ON mt.theme_id = t.theme_id
+    GROUP BY
+        mt.manga_id
+) AS themes_agg ON m.manga_id = themes_agg.manga_id
 ORDER BY m.title;
+
 
 -- Example Query: Search Manga by Title Keyword
 -- name: SearchMangaByTitle :many

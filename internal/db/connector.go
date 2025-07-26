@@ -18,15 +18,13 @@ type genericPropConnector struct {
 }
 
 func (g genericPropConnector) Connect(manga RawManga, mangaID int64) error {
-	ctx := context.Background() // Could be improved by passing ctx down
-
 	for _, propName := range g.extractPropertyNames(manga) {
-		propID, err := g.getIDByName(ctx, propName)
+		propID, err := g.getIDByName(context.Background(), propName)
 		if err != nil {
 			return fmt.Errorf("get ID failed for '%s': %w", propName, err)
 		}
 
-		if err := g.insertMangaProperty(ctx, mangaID, propID); err != nil {
+		if err := g.insertMangaProperty(context.Background(), mangaID, propID); err != nil {
 			return fmt.Errorf("link insert failed for '%s': %w", propName, err)
 		}
 	}

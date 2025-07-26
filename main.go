@@ -6,6 +6,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
 //go:embed all:frontend/dist
@@ -23,9 +24,17 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		Windows: &windows.Options{
+			CustomTheme: &windows.ThemeSettings{
+				DarkModeTitleBar:   windows.RGB(15, 15, 26),
+				DarkModeTitleText:  windows.RGB(226, 226, 245),
+				LightModeTitleBar:  windows.RGB(15, 15, 26),
+				LightModeTitleText: windows.RGB(226, 226, 245),
+			},
+		},
+		BackgroundColour: &options.RGBA{R: 15, G: 15, B: 26, A: 1},
 		OnStartup:        app.startup,
-		Bind: []interface{}{
+		Bind: []any{
 			app,
 		},
 	})

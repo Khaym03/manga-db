@@ -88,11 +88,13 @@ func (p Populator) fillMangaTable(mangas []RawManga) {
 	ctx := context.Background()
 
 	for _, manga := range mangas {
+		log.Println("Processing manga:", manga.Title)
 		mangaID, err := p.queries.InsertManga(ctx, toInsertMangaParams(manga))
 		if err != nil {
 			log.Printf("Error inserting manga '%s': %v", manga.Title, err)
-			continue
 		}
+
+		log.Println(mangaID)
 
 		for _, conn := range p.connectors {
 			if err := conn.Connect(manga, mangaID); err != nil {

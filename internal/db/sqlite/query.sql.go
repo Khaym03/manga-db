@@ -69,6 +69,146 @@ func (q *Queries) FilterMangaByGenre(ctx context.Context, arg FilterMangaByGenre
 	return items, nil
 }
 
+const getAllMangaDetails = `-- name: GetAllMangaDetails :many
+SELECT
+    m.manga_id,
+    m.title,
+    m.subtitle,
+    m.synopsis,
+    m.score,
+    m.members,
+    m.cover_image_path,
+    m.publication_year,
+    m.type,
+    m.status,
+    m.total_volumes,
+    m.total_chapters,
+    COALESCE(genres_agg.genre_names, '') AS genres,
+    COALESCE(authors_agg.author_names, '') AS authors,
+    COALESCE(serializations_agg.serialization_names, '') AS serializations,
+    COALESCE(demographics_agg.demographic_names, '') AS demographics,
+    COALESCE(themes_agg.theme_names, '') AS themes
+FROM
+    Manga m
+LEFT JOIN (
+    SELECT
+        mg.manga_id,
+        GROUP_CONCAT(DISTINCT g.genre_name) AS genre_names
+    FROM
+        MangaGenre mg
+    JOIN
+        Genre g ON mg.genre_id = g.genre_id
+    GROUP BY
+        mg.manga_id
+) AS genres_agg ON m.manga_id = genres_agg.manga_id
+LEFT JOIN (
+    SELECT
+        ma.manga_id,
+        GROUP_CONCAT(DISTINCT a.author_name) AS author_names
+    FROM
+        MangaAuthor ma
+    JOIN
+        Author a ON ma.author_id = a.author_id
+    GROUP BY
+        ma.manga_id
+) AS authors_agg ON m.manga_id = authors_agg.manga_id
+LEFT JOIN (
+    SELECT
+        ms.manga_id,
+        GROUP_CONCAT(DISTINCT s.serialization_name) AS serialization_names
+    FROM
+        MangaSerialization ms
+    JOIN
+        Serialization s ON ms.serialization_id = s.serialization_id
+    GROUP BY
+        ms.manga_id
+) AS serializations_agg ON m.manga_id = serializations_agg.manga_id
+LEFT JOIN (
+    SELECT
+        md.manga_id,
+        GROUP_CONCAT(DISTINCT d.demographic_name) AS demographic_names
+    FROM
+        MangaDemographic md
+    JOIN
+        Demographic d ON md.demographic_id = d.demographic_id
+    GROUP BY
+        md.manga_id
+) AS demographics_agg ON m.manga_id = demographics_agg.manga_id
+LEFT JOIN (
+    SELECT
+        mt.manga_id,
+        GROUP_CONCAT(DISTINCT t.theme_name) AS theme_names
+    FROM
+        MangaTheme mt
+    JOIN
+        Theme t ON mt.theme_id = t.theme_id
+    GROUP BY
+        mt.manga_id
+) AS themes_agg ON m.manga_id = themes_agg.manga_id
+ORDER BY m.title
+`
+
+type GetAllMangaDetailsRow struct {
+	MangaID         int64   `json:"manga_id"`
+	Title           string  `json:"title"`
+	Subtitle        *string `json:"subtitle"`
+	Synopsis        string  `json:"synopsis"`
+	Score           float64 `json:"score"`
+	Members         int64   `json:"members"`
+	CoverImagePath  string  `json:"cover_image_path"`
+	PublicationYear int64   `json:"publication_year"`
+	Type            string  `json:"type"`
+	Status          string  `json:"status"`
+	TotalVolumes    *int64  `json:"total_volumes"`
+	TotalChapters   *int64  `json:"total_chapters"`
+	Genres          string  `json:"genres"`
+	Authors         string  `json:"authors"`
+	Serializations  string  `json:"serializations"`
+	Demographics    string  `json:"demographics"`
+	Themes          string  `json:"themes"`
+}
+
+func (q *Queries) GetAllMangaDetails(ctx context.Context) ([]GetAllMangaDetailsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllMangaDetails)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllMangaDetailsRow
+	for rows.Next() {
+		var i GetAllMangaDetailsRow
+		if err := rows.Scan(
+			&i.MangaID,
+			&i.Title,
+			&i.Subtitle,
+			&i.Synopsis,
+			&i.Score,
+			&i.Members,
+			&i.CoverImagePath,
+			&i.PublicationYear,
+			&i.Type,
+			&i.Status,
+			&i.TotalVolumes,
+			&i.TotalChapters,
+			&i.Genres,
+			&i.Authors,
+			&i.Serializations,
+			&i.Demographics,
+			&i.Themes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAuthorByName = `-- name: GetAuthorByName :one
 SELECT author_id FROM Author WHERE author_name = ?
 `
@@ -100,110 +240,6 @@ func (q *Queries) GetGenreByName(ctx context.Context, genreName string) (int64, 
 	var genre_id int64
 	err := row.Scan(&genre_id)
 	return genre_id, err
-}
-
-const getMangaDetails = `-- name: GetMangaDetails :many
-SELECT
-    m.manga_id,
-    m.title,
-    m.subtitle,
-    m.synopsis,
-    m.score,
-    m.members,
-    m.cover_image_path,
-    m.publication_year,
-    m.type,
-    m.status,
-    m.total_volumes,
-    m.total_chapters,
-    GROUP_CONCAT(DISTINCT g.genre_name) AS genres,
-    GROUP_CONCAT(DISTINCT a.author_name) AS authors,
-    GROUP_CONCAT(DISTINCT s.serialization_name) AS serializations,
-    GROUP_CONCAT(DISTINCT d.demographic_name) AS demographics,
-    GROUP_CONCAT(DISTINCT t.theme_name) AS themes
-FROM
-    Manga m
-LEFT JOIN MangaGenre mg ON m.manga_id = mg.manga_id
-LEFT JOIN Genre g ON mg.genre_id = g.genre_id
-LEFT JOIN MangaAuthor ma ON m.manga_id = ma.manga_id
-LEFT JOIN Author a ON ma.author_id = a.author_id
-LEFT JOIN MangaSerialization ms ON m.manga_id = ms.manga_id
-LEFT JOIN Serialization s ON ms.serialization_id = s.serialization_id
-LEFT JOIN MangaDemographic md ON m.manga_id = md.manga_id
-LEFT JOIN Demographic d ON md.demographic_id = d.demographic_id
-LEFT JOIN MangaTheme mt ON m.manga_id = mt.manga_id
-LEFT JOIN Theme t ON mt.theme_id = t.theme_id
-WHERE m.manga_id = ? OR ? IS NULL -- Allows fetching a specific manga or all if NULL is passed
-GROUP BY m.manga_id
-ORDER BY m.title
-`
-
-type GetMangaDetailsParams struct {
-	MangaID int64       `json:"manga_id"`
-	Column2 interface{} `json:"column_2"`
-}
-
-type GetMangaDetailsRow struct {
-	MangaID         int64   `json:"manga_id"`
-	Title           string  `json:"title"`
-	Subtitle        *string `json:"subtitle"`
-	Synopsis        string  `json:"synopsis"`
-	Score           float64 `json:"score"`
-	Members         int64   `json:"members"`
-	CoverImagePath  string  `json:"cover_image_path"`
-	PublicationYear int64   `json:"publication_year"`
-	Type            string  `json:"type"`
-	Status          string  `json:"status"`
-	TotalVolumes    *int64  `json:"total_volumes"`
-	TotalChapters   *int64  `json:"total_chapters"`
-	Genres          string  `json:"genres"`
-	Authors         string  `json:"authors"`
-	Serializations  string  `json:"serializations"`
-	Demographics    string  `json:"demographics"`
-	Themes          string  `json:"themes"`
-}
-
-// Example Query: Get all Manga with their Genres, Authors, etc.
-// This is a more complex join, demonstrating how to retrieve related data.
-func (q *Queries) GetMangaDetails(ctx context.Context, arg GetMangaDetailsParams) ([]GetMangaDetailsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getMangaDetails, arg.MangaID, arg.Column2)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetMangaDetailsRow
-	for rows.Next() {
-		var i GetMangaDetailsRow
-		if err := rows.Scan(
-			&i.MangaID,
-			&i.Title,
-			&i.Subtitle,
-			&i.Synopsis,
-			&i.Score,
-			&i.Members,
-			&i.CoverImagePath,
-			&i.PublicationYear,
-			&i.Type,
-			&i.Status,
-			&i.TotalVolumes,
-			&i.TotalChapters,
-			&i.Genres,
-			&i.Authors,
-			&i.Serializations,
-			&i.Demographics,
-			&i.Themes,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getMangaIDByTitle = `-- name: GetMangaIDByTitle :one
@@ -275,7 +311,7 @@ func (q *Queries) InsertGenre(ctx context.Context, genreName string) (int64, err
 	return genre_id, err
 }
 
-const insertManga = `-- name: InsertManga :execrows
+const insertManga = `-- name: InsertManga :one
 INSERT INTO Manga (
     title, subtitle, synopsis, score, members, cover_image_path,
     publication_year, type, status, total_volumes, total_chapters
@@ -283,6 +319,7 @@ INSERT INTO Manga (
     ?, ?, ?, ?, ?, ?,
     ?, ?, ?, ?, ?
 )
+RETURNING manga_id
 `
 
 type InsertMangaParams struct {
@@ -300,7 +337,7 @@ type InsertMangaParams struct {
 }
 
 func (q *Queries) InsertManga(ctx context.Context, arg InsertMangaParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, insertManga,
+	row := q.db.QueryRowContext(ctx, insertManga,
 		arg.Title,
 		arg.Subtitle,
 		arg.Synopsis,
@@ -313,10 +350,9 @@ func (q *Queries) InsertManga(ctx context.Context, arg InsertMangaParams) (int64
 		arg.TotalVolumes,
 		arg.TotalChapters,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	var manga_id int64
+	err := row.Scan(&manga_id)
+	return manga_id, err
 }
 
 const insertMangaAuthor = `-- name: InsertMangaAuthor :exec
