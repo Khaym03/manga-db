@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
-	"fmt"
 	"log"
 
 	mangadb "manga-db/internal/db/sqlite"
@@ -12,8 +11,8 @@ import (
 	"manga-db/internal/utils"
 )
 
-//go:embed schema.sql
-var ddl string
+//  dasd go:embed schema.sql
+// var ddl string
 
 type RawManga = model.RawManga
 
@@ -36,14 +35,14 @@ func NewPopulator(db *sql.DB) Populator {
 	}
 }
 
-func (p Populator) makeTables() error {
-	log.Println("Creating database tables...")
-	if _, err := p.db.ExecContext(context.Background(), ddl); err != nil {
-		return fmt.Errorf("failed to create tables: %w", err)
-	}
-	log.Println("Database tables created.")
-	return nil
-}
+// func (p Populator) makeTables() error {
+// 	log.Println("Creating database tables...")
+// 	if _, err := p.db.ExecContext(context.Background(), ddl); err != nil {
+// 		return fmt.Errorf("failed to create tables: %w", err)
+// 	}
+// 	log.Println("Database tables created.")
+// 	return nil
+// }
 
 func (p Populator) fillTable(ctx context.Context, items []string, inserter ItemInserter, entityName string) {
 	for _, item := range items {
@@ -55,11 +54,11 @@ func (p Populator) fillTable(ctx context.Context, items []string, inserter ItemI
 
 // Populate handles full DB ops: create tables, collect unique props, insert all data
 func (p Populator) Populate() {
-	if err := p.makeTables(); err != nil {
-		log.Fatalf("Failed to create tables: %v", err)
-	}
+	// if err := p.makeTables(); err != nil {
+	// 	log.Fatalf("Failed to create tables: %v", err)
+	// }
 
-	rawMangas := utils.ReadJSON[RawManga]("cleaned_mangas.json")
+	rawMangas := utils.ReadJSON[RawManga]("internal/db/cleaned_mangas.json")
 
 	props := NewDefaultPropertyCollector(p)
 
