@@ -28,7 +28,7 @@ INSERT INTO Author (author_name) VALUES (?)
 RETURNING author_id;
 
 -- name: InsertMangaAuthor :exec
-INSERT OR IGNORE INTO MangaAuthor (manga_id, author_id, role) VALUES (?, ?, ?);
+INSERT OR IGNORE INTO MangaAuthor (manga_id, author_id) VALUES (?, ?);
 
 -- name: GetSerializationByName :one
 SELECT serialization_id FROM Serialization WHERE serialization_name = ?;
@@ -77,7 +77,7 @@ SELECT
     m.total_volumes,
     m.total_chapters,
     GROUP_CONCAT(DISTINCT g.genre_name) AS genres,
-    GROUP_CONCAT(DISTINCT a.author_name || ' (' || ma.role || ')') AS authors,
+    GROUP_CONCAT(DISTINCT a.author_name) AS authors,
     GROUP_CONCAT(DISTINCT s.serialization_name) AS serializations,
     GROUP_CONCAT(DISTINCT d.demographic_name) AS demographics,
     GROUP_CONCAT(DISTINCT t.theme_name) AS themes

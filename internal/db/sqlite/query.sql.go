@@ -7,7 +7,6 @@ package mangadb
 
 import (
 	"context"
-	"database/sql"
 )
 
 const filterMangaByGenre = `-- name: FilterMangaByGenre :many
@@ -28,16 +27,16 @@ LIMIT ?
 `
 
 type FilterMangaByGenreParams struct {
-	GenreName string
-	Limit     int64
+	GenreName string `json:"genre_name"`
+	Limit     int64  `json:"limit"`
 }
 
 type FilterMangaByGenreRow struct {
-	MangaID  int64
-	Title    string
-	Subtitle sql.NullString
-	Score    sql.NullFloat64
-	Status   sql.NullString
+	MangaID  int64   `json:"manga_id"`
+	Title    string  `json:"title"`
+	Subtitle *string `json:"subtitle"`
+	Score    float64 `json:"score"`
+	Status   string  `json:"status"`
 }
 
 // Example Query: Filter Manga by Genre
@@ -118,7 +117,7 @@ SELECT
     m.total_volumes,
     m.total_chapters,
     GROUP_CONCAT(DISTINCT g.genre_name) AS genres,
-    GROUP_CONCAT(DISTINCT a.author_name || ' (' || ma.role || ')') AS authors,
+    GROUP_CONCAT(DISTINCT a.author_name) AS authors,
     GROUP_CONCAT(DISTINCT s.serialization_name) AS serializations,
     GROUP_CONCAT(DISTINCT d.demographic_name) AS demographics,
     GROUP_CONCAT(DISTINCT t.theme_name) AS themes
@@ -140,28 +139,28 @@ ORDER BY m.title
 `
 
 type GetMangaDetailsParams struct {
-	MangaID int64
-	Column2 interface{}
+	MangaID int64       `json:"manga_id"`
+	Column2 interface{} `json:"column_2"`
 }
 
 type GetMangaDetailsRow struct {
-	MangaID         int64
-	Title           string
-	Subtitle        sql.NullString
-	Synopsis        sql.NullString
-	Score           sql.NullFloat64
-	Members         sql.NullInt64
-	CoverImagePath  sql.NullString
-	PublicationYear sql.NullInt64
-	Type            sql.NullString
-	Status          sql.NullString
-	TotalVolumes    sql.NullInt64
-	TotalChapters   sql.NullInt64
-	Genres          string
-	Authors         string
-	Serializations  string
-	Demographics    string
-	Themes          string
+	MangaID         int64   `json:"manga_id"`
+	Title           string  `json:"title"`
+	Subtitle        *string `json:"subtitle"`
+	Synopsis        string  `json:"synopsis"`
+	Score           float64 `json:"score"`
+	Members         int64   `json:"members"`
+	CoverImagePath  string  `json:"cover_image_path"`
+	PublicationYear int64   `json:"publication_year"`
+	Type            string  `json:"type"`
+	Status          string  `json:"status"`
+	TotalVolumes    *int64  `json:"total_volumes"`
+	TotalChapters   *int64  `json:"total_chapters"`
+	Genres          string  `json:"genres"`
+	Authors         string  `json:"authors"`
+	Serializations  string  `json:"serializations"`
+	Demographics    string  `json:"demographics"`
+	Themes          string  `json:"themes"`
 }
 
 // Example Query: Get all Manga with their Genres, Authors, etc.
@@ -287,17 +286,17 @@ INSERT INTO Manga (
 `
 
 type InsertMangaParams struct {
-	Title           string
-	Subtitle        sql.NullString
-	Synopsis        sql.NullString
-	Score           sql.NullFloat64
-	Members         sql.NullInt64
-	CoverImagePath  sql.NullString
-	PublicationYear sql.NullInt64
-	Type            sql.NullString
-	Status          sql.NullString
-	TotalVolumes    sql.NullInt64
-	TotalChapters   sql.NullInt64
+	Title           string  `json:"title"`
+	Subtitle        *string `json:"subtitle"`
+	Synopsis        string  `json:"synopsis"`
+	Score           float64 `json:"score"`
+	Members         int64   `json:"members"`
+	CoverImagePath  string  `json:"cover_image_path"`
+	PublicationYear int64   `json:"publication_year"`
+	Type            string  `json:"type"`
+	Status          string  `json:"status"`
+	TotalVolumes    *int64  `json:"total_volumes"`
+	TotalChapters   *int64  `json:"total_chapters"`
 }
 
 func (q *Queries) InsertManga(ctx context.Context, arg InsertMangaParams) (int64, error) {
@@ -321,17 +320,16 @@ func (q *Queries) InsertManga(ctx context.Context, arg InsertMangaParams) (int64
 }
 
 const insertMangaAuthor = `-- name: InsertMangaAuthor :exec
-INSERT OR IGNORE INTO MangaAuthor (manga_id, author_id, role) VALUES (?, ?, ?)
+INSERT OR IGNORE INTO MangaAuthor (manga_id, author_id) VALUES (?, ?)
 `
 
 type InsertMangaAuthorParams struct {
-	MangaID  int64
-	AuthorID int64
-	Role     sql.NullString
+	MangaID  int64 `json:"manga_id"`
+	AuthorID int64 `json:"author_id"`
 }
 
 func (q *Queries) InsertMangaAuthor(ctx context.Context, arg InsertMangaAuthorParams) error {
-	_, err := q.db.ExecContext(ctx, insertMangaAuthor, arg.MangaID, arg.AuthorID, arg.Role)
+	_, err := q.db.ExecContext(ctx, insertMangaAuthor, arg.MangaID, arg.AuthorID)
 	return err
 }
 
@@ -340,8 +338,8 @@ INSERT OR IGNORE INTO MangaDemographic (manga_id, demographic_id) VALUES (?, ?)
 `
 
 type InsertMangaDemographicParams struct {
-	MangaID       int64
-	DemographicID int64
+	MangaID       int64 `json:"manga_id"`
+	DemographicID int64 `json:"demographic_id"`
 }
 
 func (q *Queries) InsertMangaDemographic(ctx context.Context, arg InsertMangaDemographicParams) error {
@@ -354,8 +352,8 @@ INSERT OR IGNORE INTO MangaGenre (manga_id, genre_id) VALUES (?, ?)
 `
 
 type InsertMangaGenreParams struct {
-	MangaID int64
-	GenreID int64
+	MangaID int64 `json:"manga_id"`
+	GenreID int64 `json:"genre_id"`
 }
 
 func (q *Queries) InsertMangaGenre(ctx context.Context, arg InsertMangaGenreParams) error {
@@ -368,8 +366,8 @@ INSERT OR IGNORE INTO MangaSerialization (manga_id, serialization_id) VALUES (?,
 `
 
 type InsertMangaSerializationParams struct {
-	MangaID         int64
-	SerializationID int64
+	MangaID         int64 `json:"manga_id"`
+	SerializationID int64 `json:"serialization_id"`
 }
 
 func (q *Queries) InsertMangaSerialization(ctx context.Context, arg InsertMangaSerializationParams) error {
@@ -382,8 +380,8 @@ INSERT OR IGNORE INTO MangaTheme (manga_id, theme_id) VALUES (?, ?)
 `
 
 type InsertMangaThemeParams struct {
-	MangaID int64
-	ThemeID int64
+	MangaID int64 `json:"manga_id"`
+	ThemeID int64 `json:"theme_id"`
 }
 
 func (q *Queries) InsertMangaTheme(ctx context.Context, arg InsertMangaThemeParams) error {
@@ -431,16 +429,16 @@ LIMIT ?
 `
 
 type SearchMangaByTitleParams struct {
-	Title string
-	Limit int64
+	Title string `json:"title"`
+	Limit int64  `json:"limit"`
 }
 
 type SearchMangaByTitleRow struct {
-	MangaID  int64
-	Title    string
-	Subtitle sql.NullString
-	Score    sql.NullFloat64
-	Status   sql.NullString
+	MangaID  int64   `json:"manga_id"`
+	Title    string  `json:"title"`
+	Subtitle *string `json:"subtitle"`
+	Score    float64 `json:"score"`
+	Status   string  `json:"status"`
 }
 
 // Example Query: Search Manga by Title Keyword

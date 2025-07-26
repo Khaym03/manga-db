@@ -4,72 +4,67 @@
 
 package mangadb
 
-import (
-	"database/sql"
-)
-
 type Author struct {
-	AuthorID   int64
-	AuthorName string
+	AuthorID   int64  `json:"author_id"`
+	AuthorName string `json:"author_name"`
 }
 
 type Demographic struct {
-	DemographicID   int64
-	DemographicName string
+	DemographicID   int64  `json:"demographic_id"`
+	DemographicName string `json:"demographic_name"`
 }
 
 type Genre struct {
-	GenreID   int64
-	GenreName string
+	GenreID   int64  `json:"genre_id"`
+	GenreName string `json:"genre_name"`
 }
 
 type Manga struct {
-	MangaID         int64
-	Title           string
-	Subtitle        sql.NullString
-	Synopsis        sql.NullString
-	Score           sql.NullFloat64
-	Members         sql.NullInt64
-	CoverImagePath  sql.NullString
-	PublicationYear sql.NullInt64
-	Type            sql.NullString
-	Status          sql.NullString
-	TotalVolumes    sql.NullInt64
-	TotalChapters   sql.NullInt64
+	MangaID         int64   `json:"manga_id"`
+	Title           string  `json:"title"`
+	Subtitle        *string `json:"subtitle"`
+	Synopsis        string  `json:"synopsis"`
+	Score           float64 `json:"score"`
+	Members         int64   `json:"members"`
+	CoverImagePath  string  `json:"cover_image_path"`
+	PublicationYear int64   `json:"publication_year"`
+	Type            string  `json:"type"`
+	Status          string  `json:"status"`
+	TotalVolumes    *int64  `json:"total_volumes"`
+	TotalChapters   *int64  `json:"total_chapters"`
 }
 
 type Mangaauthor struct {
-	MangaID  int64
-	AuthorID int64
-	Role     sql.NullString
+	MangaID  int64 `json:"manga_id"`
+	AuthorID int64 `json:"author_id"`
 }
 
 type Mangademographic struct {
-	MangaID       int64
-	DemographicID int64
+	MangaID       int64 `json:"manga_id"`
+	DemographicID int64 `json:"demographic_id"`
 }
 
 type Mangagenre struct {
-	MangaID int64
-	GenreID int64
+	MangaID int64 `json:"manga_id"`
+	GenreID int64 `json:"genre_id"`
 }
 
 type Mangaserialization struct {
-	MangaID         int64
-	SerializationID int64
+	MangaID         int64 `json:"manga_id"`
+	SerializationID int64 `json:"serialization_id"`
 }
 
 type Mangatheme struct {
-	MangaID int64
-	ThemeID int64
+	MangaID int64 `json:"manga_id"`
+	ThemeID int64 `json:"theme_id"`
 }
 
 type Serialization struct {
-	SerializationID   int64
-	SerializationName string
+	SerializationID   int64  `json:"serialization_id"`
+	SerializationName string `json:"serialization_name"`
 }
 
 type Theme struct {
-	ThemeID   int64
-	ThemeName string
+	ThemeID   int64  `json:"theme_id"`
+	ThemeName string `json:"theme_name"`
 }

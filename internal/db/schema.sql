@@ -4,13 +4,13 @@ CREATE TABLE Manga (
     manga_id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     subtitle TEXT,
-    synopsis TEXT,
-    score REAL, -- REAL for floating-point numbers like 8.24
-    members INTEGER, -- Stores parsed member count (e.g., 212000)
-    cover_image_path TEXT, -- File path or URL
-    publication_year INTEGER,
-    type TEXT, -- e.g., "Manga", "Manhwa"
-    status TEXT, -- e.g., "Finished", "Ongoing"
+    synopsis TEXT NOT NULL,
+    score REAL NOT NULL, -- REAL for floating-point numbers like 8.24
+    members INTEGER NOT NULL, -- Stores parsed member count (e.g., 212000)
+    cover_image_path TEXT NOT NULL, -- File path or URL
+    publication_year INTEGER NOT NULL,
+    type TEXT NOT NULL, -- e.g., "Manga", "Manhwa"
+    status TEXT NOT NULL, -- e.g., "Finished", "Ongoing"
     total_volumes INTEGER,
     total_chapters INTEGER
 );
@@ -44,7 +44,6 @@ CREATE TABLE Author (
 CREATE TABLE MangaAuthor (
     manga_id INTEGER NOT NULL,
     author_id INTEGER NOT NULL,
-    role TEXT, -- e.g., "Author", "Artist", "Writer". Can be NULL if not specified.
     PRIMARY KEY (manga_id, author_id, role), -- Composite primary key including role for distinct roles by the same author
     FOREIGN KEY (manga_id) REFERENCES Manga(manga_id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES Author(author_id) ON DELETE CASCADE
