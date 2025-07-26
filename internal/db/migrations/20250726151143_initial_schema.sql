@@ -1,3 +1,4 @@
+-- +goose Up
 -- Table: Manga
 -- Stores core information about each manga series.
 CREATE TABLE Manga (
@@ -49,6 +50,7 @@ CREATE TABLE MangaAuthor (
     FOREIGN KEY (author_id) REFERENCES Author(author_id) ON DELETE CASCADE
 );
 
+
 -- Table: Serialization
 -- Stores unique serialization magazine/platform names.
 CREATE TABLE Serialization (
@@ -99,3 +101,18 @@ CREATE TABLE MangaTheme (
     FOREIGN KEY (manga_id) REFERENCES Manga(manga_id) ON DELETE CASCADE,
     FOREIGN KEY (theme_id) REFERENCES Theme(theme_id) ON DELETE CASCADE
 );
+
+
+-- +goose Down
+-- Drop tables in reverse order of creation to respect foreign key constraints
+DROP TABLE IF EXISTS MangaTheme;
+DROP TABLE IF EXISTS Theme;
+DROP TABLE IF EXISTS MangaDemographic;
+DROP TABLE IF EXISTS Demographic;
+DROP TABLE IF EXISTS MangaSerialization;
+DROP TABLE IF EXISTS Serialization;
+DROP TABLE IF EXISTS MangaAuthor;
+DROP TABLE IF EXISTS Author;
+DROP TABLE IF EXISTS MangaGenre;
+DROP TABLE IF EXISTS Genre;
+DROP TABLE IF EXISTS Manga;

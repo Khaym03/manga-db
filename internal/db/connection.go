@@ -8,7 +8,7 @@ import (
 )
 
 func NewSQLiteConn() *sql.DB {
-	dbConn, err := sql.Open("sqlite", "db.sqlite3")
+	dbConn, err := sql.Open("sqlite", "manga.db")
 	if err != nil {
 		log.Println(err)
 	}

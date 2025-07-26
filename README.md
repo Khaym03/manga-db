@@ -17,3 +17,8 @@ to this in your browser, and you can call your Go code from devtools.
 ## Building
 
 To build a redistributable, production mode package, use `wails build`.
+
+## Goose CMDs
+
+`goose` create nameOfMigration sql
+`goose` -dir internal/db/migrations sqlite3 internal/db/manga.db up
