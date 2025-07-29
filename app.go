@@ -30,13 +30,12 @@ func (a *App) startup(ctx context.Context) {
 
 }
 
-func (a *App) GetAllMangas() []model.RawManga {
+func (a *App) GetAllMangas() []model.Manga {
 	mangas, err := a.queries.GetAllMangas(a.ctx)
 
-	var rawMangas []model.RawManga
+	var rawMangas []model.Manga
 	for _, manga := range mangas {
-
-		rawMangas = append(rawMangas, toRawManga(manga))
+		rawMangas = append(rawMangas, a.optainMangaProps(manga))
 	}
 
 	if err != nil {
@@ -46,17 +45,17 @@ func (a *App) GetAllMangas() []model.RawManga {
 	return rawMangas
 }
 
-func (a *App) SearchByTitle(title string) []model.RawManga {
-	mangas, err := a.queries.SearchMangaByTitle(a.ctx, title)
+func (a *App) SearchByTitle(title string) []model.Manga {
+	mangas, err := a.queries.SearchMangaByTitle(a.ctx, "%"+title+"%")
 
 	if err != nil {
 		fmt.Printf("Error searching manga by title: %v", err)
 		return nil
 	}
 
-	var rawMangas []model.RawManga
+	var rawMangas []model.Manga
 	for _, manga := range mangas {
-		rawMangas = append(rawMangas, toRawManga(manga))
+		rawMangas = append(rawMangas, a.optainMangaProps(manga))
 	}
 
 	return rawMangas
@@ -73,8 +72,10 @@ func (a *App) GetAllGenres() []mangadb.Genre {
 	return genres
 }
 
-func toRawManga(manga mangadb.Manga) model.RawManga {
-	return model.RawManga{
+func toRawManga(manga mangadb.Manga) model.Manga {
+	return model.Manga{
+		ID: manga.MangaID,
+
 		Title:           manga.Title,
 		Subtitle:        manga.Subtitle,
 		Synopsis:        manga.Synopsis,
@@ -87,4 +88,16 @@ func toRawManga(manga mangadb.Manga) model.RawManga {
 		TotalVolumes:    manga.TotalVolumes,
 		TotalChapters:   manga.TotalChapters,
 	}
+}
+
+func (a *App) optainMangaProps(m mangadb.Manga) model.Manga {
+	genres, err := a.queries.GetMangaGenresByMangaID(a.ctx, m.MangaID)
+	if err != nil {
+		fmt.Printf("Error retrieving genres for manga ID %d: %v", m.MangaID, err)
+	}
+	manga := toRawManga(m)
+
+	manga.Genres = genres
+
+	return manga
 }

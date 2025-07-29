@@ -5,6 +5,6 @@ import {model} from '../models';
 
 export function GetAllGenres():Promise<Array<mangadb.Genre>>;
 
-export function GetAllMangas():Promise<Array<model.RawManga>>;
+export function GetAllMangas():Promise<Array<model.Manga>>;
 
-export function SearchByTitle(arg1:string):Promise<Array<model.RawManga>>;
+export function SearchByTitle(arg1:string):Promise<Array<model.Manga>>;
