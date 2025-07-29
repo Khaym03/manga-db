@@ -18,12 +18,13 @@ SELECT
     m.status
 FROM
     Manga m
-JOIN MangaGenre mg ON m.manga_id = mg.manga_id
-JOIN Genre g ON mg.genre_id = g.genre_id
+    JOIN MangaGenre mg ON m.manga_id = mg.manga_id
+    JOIN Genre g ON mg.genre_id = g.genre_id
 WHERE
     g.genre_name = ?
-ORDER BY m.title
-LIMIT ?
+ORDER BY
+    m.title
+LIMIT
 `
 
 type FilterMangaByGenreParams struct {
@@ -39,6 +40,7 @@ type FilterMangaByGenreRow struct {
 	Status   string  `json:"status"`
 }
 
+// Manteniendo el límite si es necesario para paginación o resultados top
 // Example Query: Filter Manga by Genre
 func (q *Queries) FilterMangaByGenre(ctx context.Context, arg FilterMangaByGenreParams) ([]FilterMangaByGenreRow, error) {
 	rows, err := q.db.QueryContext(ctx, filterMangaByGenre, arg.GenreName, arg.Limit)
@@ -69,7 +71,7 @@ func (q *Queries) FilterMangaByGenre(ctx context.Context, arg FilterMangaByGenre
 	return items, nil
 }
 
-const getAllMangaDetails = `-- name: GetAllMangaDetails :many
+const getAllMangas = `-- name: GetAllMangas :many
 SELECT
     m.manga_id,
     m.title,
@@ -82,101 +84,20 @@ SELECT
     m.type,
     m.status,
     m.total_volumes,
-    m.total_chapters,
-    COALESCE(genres_agg.genre_names, '') AS genres,
-    COALESCE(authors_agg.author_names, '') AS authors,
-    COALESCE(serializations_agg.serialization_names, '') AS serializations,
-    COALESCE(demographics_agg.demographic_names, '') AS demographics,
-    COALESCE(themes_agg.theme_names, '') AS themes
+    m.total_chapters
 FROM
     Manga m
-LEFT JOIN (
-    SELECT
-        mg.manga_id,
-        GROUP_CONCAT(DISTINCT g.genre_name) AS genre_names
-    FROM
-        MangaGenre mg
-    JOIN
-        Genre g ON mg.genre_id = g.genre_id
-    GROUP BY
-        mg.manga_id
-) AS genres_agg ON m.manga_id = genres_agg.manga_id
-LEFT JOIN (
-    SELECT
-        ma.manga_id,
-        GROUP_CONCAT(DISTINCT a.author_name) AS author_names
-    FROM
-        MangaAuthor ma
-    JOIN
-        Author a ON ma.author_id = a.author_id
-    GROUP BY
-        ma.manga_id
-) AS authors_agg ON m.manga_id = authors_agg.manga_id
-LEFT JOIN (
-    SELECT
-        ms.manga_id,
-        GROUP_CONCAT(DISTINCT s.serialization_name) AS serialization_names
-    FROM
-        MangaSerialization ms
-    JOIN
-        Serialization s ON ms.serialization_id = s.serialization_id
-    GROUP BY
-        ms.manga_id
-) AS serializations_agg ON m.manga_id = serializations_agg.manga_id
-LEFT JOIN (
-    SELECT
-        md.manga_id,
-        GROUP_CONCAT(DISTINCT d.demographic_name) AS demographic_names
-    FROM
-        MangaDemographic md
-    JOIN
-        Demographic d ON md.demographic_id = d.demographic_id
-    GROUP BY
-        md.manga_id
-) AS demographics_agg ON m.manga_id = demographics_agg.manga_id
-LEFT JOIN (
-    SELECT
-        mt.manga_id,
-        GROUP_CONCAT(DISTINCT t.theme_name) AS theme_names
-    FROM
-        MangaTheme mt
-    JOIN
-        Theme t ON mt.theme_id = t.theme_id
-    GROUP BY
-        mt.manga_id
-) AS themes_agg ON m.manga_id = themes_agg.manga_id
-ORDER BY m.title
 `
 
-type GetAllMangaDetailsRow struct {
-	MangaID         int64   `json:"manga_id"`
-	Title           string  `json:"title"`
-	Subtitle        *string `json:"subtitle"`
-	Synopsis        string  `json:"synopsis"`
-	Score           float64 `json:"score"`
-	Members         int64   `json:"members"`
-	CoverImagePath  string  `json:"cover_image_path"`
-	PublicationYear int64   `json:"publication_year"`
-	Type            string  `json:"type"`
-	Status          string  `json:"status"`
-	TotalVolumes    *int64  `json:"total_volumes"`
-	TotalChapters   *int64  `json:"total_chapters"`
-	Genres          string  `json:"genres"`
-	Authors         string  `json:"authors"`
-	Serializations  string  `json:"serializations"`
-	Demographics    string  `json:"demographics"`
-	Themes          string  `json:"themes"`
-}
-
-func (q *Queries) GetAllMangaDetails(ctx context.Context) ([]GetAllMangaDetailsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllMangaDetails)
+func (q *Queries) GetAllMangas(ctx context.Context) ([]Manga, error) {
+	rows, err := q.db.QueryContext(ctx, getAllMangas)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAllMangaDetailsRow
+	var items []Manga
 	for rows.Next() {
-		var i GetAllMangaDetailsRow
+		var i Manga
 		if err := rows.Scan(
 			&i.MangaID,
 			&i.Title,
@@ -190,11 +111,6 @@ func (q *Queries) GetAllMangaDetails(ctx context.Context) ([]GetAllMangaDetailsR
 			&i.Status,
 			&i.TotalVolumes,
 			&i.TotalChapters,
-			&i.Genres,
-			&i.Authors,
-			&i.Serializations,
-			&i.Demographics,
-			&i.Themes,
 		); err != nil {
 			return nil, err
 		}
@@ -210,7 +126,12 @@ func (q *Queries) GetAllMangaDetails(ctx context.Context) ([]GetAllMangaDetailsR
 }
 
 const getAuthorByName = `-- name: GetAuthorByName :one
-SELECT author_id FROM Author WHERE author_name = ?
+SELECT
+    author_id
+FROM
+    Author
+WHERE
+    author_name = ?
 `
 
 func (q *Queries) GetAuthorByName(ctx context.Context, authorName string) (int64, error) {
@@ -220,8 +141,29 @@ func (q *Queries) GetAuthorByName(ctx context.Context, authorName string) (int64
 	return author_id, err
 }
 
+const getDemographicByMangaID = `-- name: GetDemographicByMangaID :one
+SELECT
+    demographic_name
+FROM
+    Demographic
+WHERE
+    demographic_id = ?
+`
+
+func (q *Queries) GetDemographicByMangaID(ctx context.Context, demographicID int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getDemographicByMangaID, demographicID)
+	var demographic_name string
+	err := row.Scan(&demographic_name)
+	return demographic_name, err
+}
+
 const getDemographicByName = `-- name: GetDemographicByName :one
-SELECT demographic_id FROM Demographic WHERE demographic_name = ?
+SELECT
+    demographic_id
+FROM
+    Demographic
+WHERE
+    demographic_name = ?
 `
 
 func (q *Queries) GetDemographicByName(ctx context.Context, demographicName string) (int64, error) {
@@ -232,7 +174,12 @@ func (q *Queries) GetDemographicByName(ctx context.Context, demographicName stri
 }
 
 const getGenreByName = `-- name: GetGenreByName :one
-SELECT genre_id FROM Genre WHERE genre_name = ?
+SELECT
+    genre_id
+FROM
+    Genre
+WHERE
+    genre_name = ?
 `
 
 func (q *Queries) GetGenreByName(ctx context.Context, genreName string) (int64, error) {
@@ -243,7 +190,12 @@ func (q *Queries) GetGenreByName(ctx context.Context, genreName string) (int64, 
 }
 
 const getMangaIDByTitle = `-- name: GetMangaIDByTitle :one
-SELECT manga_id FROM Manga WHERE title = ?
+SELECT
+    manga_id
+FROM
+    Manga
+WHERE
+    title = ?
 `
 
 func (q *Queries) GetMangaIDByTitle(ctx context.Context, title string) (int64, error) {
@@ -253,8 +205,29 @@ func (q *Queries) GetMangaIDByTitle(ctx context.Context, title string) (int64, e
 	return manga_id, err
 }
 
+const getSerializationByMangaID = `-- name: GetSerializationByMangaID :one
+SELECT
+    serialization_name
+FROM
+    Serialization
+WHERE
+    serialization_id = ?
+`
+
+func (q *Queries) GetSerializationByMangaID(ctx context.Context, serializationID int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getSerializationByMangaID, serializationID)
+	var serialization_name string
+	err := row.Scan(&serialization_name)
+	return serialization_name, err
+}
+
 const getSerializationByName = `-- name: GetSerializationByName :one
-SELECT serialization_id FROM Serialization WHERE serialization_name = ?
+SELECT
+    serialization_id
+FROM
+    Serialization
+WHERE
+    serialization_name = ?
 `
 
 func (q *Queries) GetSerializationByName(ctx context.Context, serializationName string) (int64, error) {
@@ -265,7 +238,12 @@ func (q *Queries) GetSerializationByName(ctx context.Context, serializationName 
 }
 
 const getThemeByName = `-- name: GetThemeByName :one
-SELECT theme_id FROM Theme WHERE theme_name = ?
+SELECT
+    theme_id
+FROM
+    Theme
+WHERE
+    theme_name = ?
 `
 
 func (q *Queries) GetThemeByName(ctx context.Context, themeName string) (int64, error) {
@@ -276,8 +254,10 @@ func (q *Queries) GetThemeByName(ctx context.Context, themeName string) (int64, 
 }
 
 const insertAuthor = `-- name: InsertAuthor :one
-INSERT INTO Author (author_name) VALUES (?)
-RETURNING author_id
+INSERT INTO
+    Author (author_name)
+VALUES
+    (?) RETURNING author_id
 `
 
 func (q *Queries) InsertAuthor(ctx context.Context, authorName string) (int64, error) {
@@ -288,8 +268,10 @@ func (q *Queries) InsertAuthor(ctx context.Context, authorName string) (int64, e
 }
 
 const insertDemographic = `-- name: InsertDemographic :one
-INSERT INTO Demographic (demographic_name) VALUES (?)
-RETURNING demographic_id
+INSERT INTO
+    Demographic (demographic_name)
+VALUES
+    (?) RETURNING demographic_id
 `
 
 func (q *Queries) InsertDemographic(ctx context.Context, demographicName string) (int64, error) {
@@ -300,8 +282,10 @@ func (q *Queries) InsertDemographic(ctx context.Context, demographicName string)
 }
 
 const insertGenre = `-- name: InsertGenre :one
-INSERT INTO Genre (genre_name) VALUES (?)
-RETURNING genre_id
+INSERT INTO
+    Genre (genre_name)
+VALUES
+    (?) RETURNING genre_id
 `
 
 func (q *Queries) InsertGenre(ctx context.Context, genreName string) (int64, error) {
@@ -312,14 +296,22 @@ func (q *Queries) InsertGenre(ctx context.Context, genreName string) (int64, err
 }
 
 const insertManga = `-- name: InsertManga :one
-INSERT INTO Manga (
-    title, subtitle, synopsis, score, members, cover_image_path,
-    publication_year, type, status, total_volumes, total_chapters
-) VALUES (
-    ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?
-)
-RETURNING manga_id
+INSERT INTO
+    Manga (
+        title,
+        subtitle,
+        synopsis,
+        score,
+        members,
+        cover_image_path,
+        publication_year,
+        type,
+        status,
+        total_volumes,
+        total_chapters
+    )
+VALUES
+    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING manga_id
 `
 
 type InsertMangaParams struct {
@@ -356,7 +348,10 @@ func (q *Queries) InsertManga(ctx context.Context, arg InsertMangaParams) (int64
 }
 
 const insertMangaAuthor = `-- name: InsertMangaAuthor :exec
-INSERT OR IGNORE INTO MangaAuthor (manga_id, author_id) VALUES (?, ?)
+INSERT
+OR IGNORE INTO MangaAuthor (manga_id, author_id)
+VALUES
+    (?, ?)
 `
 
 type InsertMangaAuthorParams struct {
@@ -370,7 +365,10 @@ func (q *Queries) InsertMangaAuthor(ctx context.Context, arg InsertMangaAuthorPa
 }
 
 const insertMangaDemographic = `-- name: InsertMangaDemographic :exec
-INSERT OR IGNORE INTO MangaDemographic (manga_id, demographic_id) VALUES (?, ?)
+INSERT
+OR IGNORE INTO MangaDemographic (manga_id, demographic_id)
+VALUES
+    (?, ?)
 `
 
 type InsertMangaDemographicParams struct {
@@ -384,7 +382,10 @@ func (q *Queries) InsertMangaDemographic(ctx context.Context, arg InsertMangaDem
 }
 
 const insertMangaGenre = `-- name: InsertMangaGenre :exec
-INSERT OR IGNORE INTO MangaGenre (manga_id, genre_id) VALUES (?, ?)
+INSERT
+OR IGNORE INTO MangaGenre (manga_id, genre_id)
+VALUES
+    (?, ?)
 `
 
 type InsertMangaGenreParams struct {
@@ -398,7 +399,10 @@ func (q *Queries) InsertMangaGenre(ctx context.Context, arg InsertMangaGenrePara
 }
 
 const insertMangaSerialization = `-- name: InsertMangaSerialization :exec
-INSERT OR IGNORE INTO MangaSerialization (manga_id, serialization_id) VALUES (?, ?)
+INSERT
+OR IGNORE INTO MangaSerialization (manga_id, serialization_id)
+VALUES
+    (?, ?)
 `
 
 type InsertMangaSerializationParams struct {
@@ -412,7 +416,10 @@ func (q *Queries) InsertMangaSerialization(ctx context.Context, arg InsertMangaS
 }
 
 const insertMangaTheme = `-- name: InsertMangaTheme :exec
-INSERT OR IGNORE INTO MangaTheme (manga_id, theme_id) VALUES (?, ?)
+INSERT
+OR IGNORE INTO MangaTheme (manga_id, theme_id)
+VALUES
+    (?, ?)
 `
 
 type InsertMangaThemeParams struct {
@@ -426,8 +433,10 @@ func (q *Queries) InsertMangaTheme(ctx context.Context, arg InsertMangaThemePara
 }
 
 const insertSerialization = `-- name: InsertSerialization :one
-INSERT INTO Serialization (serialization_name) VALUES (?)
-RETURNING serialization_id
+INSERT INTO
+    Serialization (serialization_name)
+VALUES
+    (?) RETURNING serialization_id
 `
 
 func (q *Queries) InsertSerialization(ctx context.Context, serializationName string) (int64, error) {
@@ -438,8 +447,10 @@ func (q *Queries) InsertSerialization(ctx context.Context, serializationName str
 }
 
 const insertTheme = `-- name: InsertTheme :one
-INSERT INTO Theme (theme_name) VALUES (?)
-RETURNING theme_id
+INSERT INTO
+    Theme (theme_name)
+VALUES
+    (?) RETURNING theme_id
 `
 
 func (q *Queries) InsertTheme(ctx context.Context, themeName string) (int64, error) {
@@ -451,48 +462,47 @@ func (q *Queries) InsertTheme(ctx context.Context, themeName string) (int64, err
 
 const searchMangaByTitle = `-- name: SearchMangaByTitle :many
 SELECT
-    manga_id,
-    title,
-    subtitle,
-    score,
-    status
+    m.manga_id,
+    m.title,
+    m.subtitle,
+    m.synopsis,
+    m.score,
+    m.members,
+    m.cover_image_path,
+    m.publication_year,
+    m.type,
+    m.status,
+    m.total_volumes,
+    m.total_chapters
 FROM
-    Manga
+    Manga m
 WHERE
-    title LIKE ?
-ORDER BY title
-LIMIT ?
+    m.title LIKE ?
 `
 
-type SearchMangaByTitleParams struct {
-	Title string `json:"title"`
-	Limit int64  `json:"limit"`
-}
-
-type SearchMangaByTitleRow struct {
-	MangaID  int64   `json:"manga_id"`
-	Title    string  `json:"title"`
-	Subtitle *string `json:"subtitle"`
-	Score    float64 `json:"score"`
-	Status   string  `json:"status"`
-}
-
 // Example Query: Search Manga by Title Keyword
-func (q *Queries) SearchMangaByTitle(ctx context.Context, arg SearchMangaByTitleParams) ([]SearchMangaByTitleRow, error) {
-	rows, err := q.db.QueryContext(ctx, searchMangaByTitle, arg.Title, arg.Limit)
+func (q *Queries) SearchMangaByTitle(ctx context.Context, title string) ([]Manga, error) {
+	rows, err := q.db.QueryContext(ctx, searchMangaByTitle, title)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []SearchMangaByTitleRow
+	var items []Manga
 	for rows.Next() {
-		var i SearchMangaByTitleRow
+		var i Manga
 		if err := rows.Scan(
 			&i.MangaID,
 			&i.Title,
 			&i.Subtitle,
+			&i.Synopsis,
 			&i.Score,
+			&i.Members,
+			&i.CoverImagePath,
+			&i.PublicationYear,
+			&i.Type,
 			&i.Status,
+			&i.TotalVolumes,
+			&i.TotalChapters,
 		); err != nil {
 			return nil, err
 		}

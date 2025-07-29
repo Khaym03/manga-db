@@ -1,11 +1,11 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { mangadb } from '../../wailsjs/go/models';
+import { model } from '../../wailsjs/go/models';
 import { GetAllMangas } from '../../wailsjs/go/main/App';
 
 interface MangaContextType {
-  manga: mangadb.GetAllMangaDetailsRow[];
+  manga: model.RawManga[];
   isLoading: boolean;
-  setManga: React.Dispatch<React.SetStateAction<mangadb.GetAllMangaDetailsRow[]>>;
+  setManga: React.Dispatch<React.SetStateAction<model.RawManga[]>>
   error: string | null;
 }
 
@@ -24,7 +24,7 @@ export default function MangaProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [manga, setManga] = useState<mangadb.GetAllMangaDetailsRow[]>([]);
+  const [manga, setManga] = useState<model.RawManga[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

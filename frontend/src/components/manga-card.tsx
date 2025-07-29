@@ -1,13 +1,14 @@
-import { mangadb } from '../../wailsjs/go/models'
+// import { mangadb } from '../../wailsjs/go/models'
 import {
 
   CardTitle
 } from './ui/card'
 import { Star } from 'lucide-react'
 import { Badge } from './ui/badge'
+import type { model } from 'wailsjs/go/models'
 
 interface MangaCardProps {
-  manga: mangadb.GetAllMangaDetailsRow
+  manga: model.RawManga
 }
 
 export default function MangaCard({ manga }: MangaCardProps) {
