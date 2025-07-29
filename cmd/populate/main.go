@@ -5,7 +5,10 @@ import (
 )
 
 func main() {
-	dbConn := db.NewSQLiteConn()
+	dbConn, err := db.NewSQLiteConn()
+	if err != nil {
+		panic("Failed to connect to the database: " + err.Error())
+	}
 	defer dbConn.Close()
 
 	db.NewPopulator(dbConn).Populate()

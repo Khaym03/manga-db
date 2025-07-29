@@ -8,8 +8,6 @@ import {
 import { Star } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { useManga } from './app-provider'; // Import useManga to get selectedManga
-import type { model } from 'wailsjs/go/models'; 
-import type React from 'react';
 import { CardDescription } from './ui/card';
 
 // This component will render the details of the selected manga in a Sheet
@@ -72,6 +70,9 @@ export default function MangaDetailSheet() {
             </div>
             <div>
               <strong>Status:</strong> {selectedManga.status}
+            </div>
+             <div>
+              <strong>ID:</strong> {selectedManga.id}
             </div>
             {selectedManga.total_volumes && (
               <div>

@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input'
 // import { Logo } from "./logo";
 import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { SearchByTitle, GetAllMangas } from '../../../wailsjs/go/main/App'
+import { SearchByTitle } from '../../../wailsjs/go/main/App'
 import { useManga } from '../app-provider'
 // import type { model } from 'wailsjs/go/models'
 import GenresCarrousel from '../genres-carrousel'

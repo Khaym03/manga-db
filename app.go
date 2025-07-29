@@ -6,6 +6,9 @@ import (
 	"manga-db/internal/db"
 	mangadb "manga-db/internal/db/sqlite"
 	"manga-db/internal/model"
+
+	"github.com/joho/godotenv"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -24,7 +27,26 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-	dbConn := db.NewSQLiteConn()
+	err := godotenv.Load()
+	if err != nil {
+		runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
+			Type:    runtime.ErrorDialog,
+			Title:   "Environment Error",
+			Message: "Failed to load environment variables. Please ensure the .env file exists.",
+		})
+		fmt.Printf("Error loading .env file: %v\n", err)
+	}
+
+	dbConn, err := db.NewSQLiteConn()
+	if err != nil {
+		runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
+			Type:    runtime.ErrorDialog,
+			Title:   "Database Connection Error",
+			Message: "Failed to connect to the database. Please check the database file path and ensure the database is accessible.",
+		})
+		fmt.Printf("Error connecting to the database: %v\n", err)
+		return
+	}
 
 	a.queries = mangadb.New(dbConn)
 

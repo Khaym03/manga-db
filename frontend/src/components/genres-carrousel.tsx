@@ -2,7 +2,6 @@ import type { mangadb } from 'wailsjs/go/models'
 import { GetAllGenres } from '../../wailsjs/go/main/App'
 import { useEffect, useState } from 'react'
 import { Badge } from './ui/badge'
-import { Card } from './ui/card'
 import {
   Carousel,
   CarouselContent,
